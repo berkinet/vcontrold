@@ -7,3 +7,7 @@ New options: `--enq-interval SECONDS` (default 2.3; 0 disables periodic activity
 Build with `cmake -S . -B build -DVSIM=ON -DMANPAGES=OFF` then `cmake --build build --target vsim`. Read `doc/man/vsim.rst` for behavior. Run `python3 tests/vsim_idle.py build/vsim` with exclusive access to loopback port 6578; do not run alongside a simulator service.
 
 Validation on the Pi: periodic ENQs, handshake, fragmented-request silence, fixtures, setpoint write/readback, reconnect, activity-only, disabled timer and invalid arguments. Plugin-client smoke polls are checked separately by the Indigo plugin project.
+
+Clock-health extension: 088E/8 returns advancing synthetic BCD wall time; 7507/9 returns synthetic no-error history with a current timestamp; A152/2 returns synthetic zero relay bytes. These permit testing the clock-health and history-sampling paths and do not verify real fault-bit semantics.
+
+When updating an older simulator XML snapshot, add a getaddr command named getProbeRelayStatus at A152, length 2, for device 209F, with no unit. Ensure its ES unit uses the errstate decoder (as the production configuration now does) so getError0 includes the recorded code. Keep the exact SIMULATOR_209F identity and physical-device isolation. This source update does not install or switch services.

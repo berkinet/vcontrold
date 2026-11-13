@@ -71,6 +71,9 @@ typedef struct {
 } ctable;
 
 ctable cmds[] = {
+    { 5, { 0x01, 0xF7, 0x08, 0x8E, 0x08 }, 8, { 0 } },
+    { 5, { 0x01, 0xF7, 0x75, 0x07, 0x09 }, 9, { 0 } },
+    { 5, { 0x01, 0xF7, 0xA1, 0x52, 0x02 }, 2, { 0, 0 } },
     { 1, { 0x04 }, 1, { 0x05 } },
     { 5, { 0x01, 0xF7, 0x08, 0x00, 0x02 }, 2, { 0xE2, 0xFF } },
     { 5, { 0x01, 0xF7, 0x08, 0x02, 0x02 }, 2, { 0x94, 0x02 } },
@@ -175,6 +178,20 @@ static void handle(int fd)
                 for ( j = 0 ; j < cmdc; j++) {
                     if ( cmds[j].cmd[0] == input[0] ) {
                         if (( cmds[j].cmdlen == inpidx) && (!memcmp(cmds[j].cmd, input, inpidx))) {
+                            /* Synthetic advancing wall clock, not a physical-controller claim. */
+                            if (cmds[j].cmdlen == 5 &&
+                                (((unsigned char)input[2] == 0x08 && (unsigned char)input[3] == 0x8e) ||
+                                 ((unsigned char)input[2] == 0x75 && (unsigned char)input[3] == 0x07))) {
+                                time_t now = time(NULL);
+                                struct tm tm;
+                                localtime_r(&now, &tm);
+                                int year = tm.tm_year + 1900;
+                                int fields[8] = {year / 100, year % 100, tm.tm_mon + 1,
+                                                 tm.tm_mday, tm.tm_wday, tm.tm_hour, tm.tm_min, tm.tm_sec};
+                                int offset = (unsigned char)input[2] == 0x75 ? 1 : 0;
+                                for (int k = 0; k < 8; k++)
+                                    cmds[j].rsp[k + offset] = ((fields[k] / 10) << 4) | (fields[k] % 10);
+                            }
                             dump(input, inpidx, "received cmd:");
                             dump(cmds[j].rsp, cmds[j].rsplen, "answer:");
                             if ((!activity_only || (unsigned char)input[0] == 0x04) &&

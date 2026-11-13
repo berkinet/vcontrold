@@ -39,4 +39,19 @@ try:
 finally:stop(p,s)
 for arg in ['-1','nan','inf','oops']:
  assert subprocess.run([binary,'--enq-interval',arg],capture_output=True).returncode==2
+p,s=start('--enq-interval','0')
+try:
+    s.sendall(bytes.fromhex('01 f7 08 8e 08'))
+    first=s.recv(8)
+    assert len(first)==8 and first[0]==0x20
+    time.sleep(1.1)
+    s.sendall(bytes.fromhex('01 f7 08 8e 08'))
+    second=s.recv(8)
+    assert len(second)==8 and second!=first
+    s.sendall(bytes.fromhex('01 f7 75 07 09'))
+    history=s.recv(9)
+    assert len(history)==9 and history[0]==0 and history[1]==0x20
+    s.sendall(bytes.fromhex('01 f7 a1 52 02'))
+    assert s.recv(2)==bytes([0,0])
+finally:stop(p,s)
 print('PASS: periodic activity, handshake, fragmented-request silence, fixtures, writes/readback, reconnect, activity-only, disabled timer, argument validation')

@@ -43,6 +43,10 @@ Unknown/incomplete commands remain pending rather than being silently decoded.
 Only run this backend with isolated simulator configuration, never by attaching
 it to a physical serial device.
 
+The local clock-health extension answers 088E/8 with advancing BCD host wall
+time, 7507/9 with synthetic no-error history and A152/2 with zero relay bytes.
+These are test fixtures, not physical-controller behavior guarantees.
+
 SEE ALSO
 ========
 
