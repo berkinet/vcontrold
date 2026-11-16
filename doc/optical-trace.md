@@ -37,3 +37,16 @@ python3 -m unittest discover -s tests -v
 Fixtures use only loopback sockets and a pseudo-terminal. They verify idle bytes before/after clients, fragmented command input, exact requested results, preflush capture, persistent ownership after close, trace-disabled compatibility and startup failure safeguards. The pseudo-terminal opener exists only in a fixture because PTYs do not implement USB adapter DTR ioctls; production serial configuration is unchanged.
 
 On this project the Pi checkout is /home/rdp/viessmann/vcontrold-trace, beside /home/rdp/viessmann/vcontrold. The Mac checkout is /Users/rdp/Documents/Codex/vcontrold-trace. Production binary replacement is not required: a removable service override can point to a separately installed trace executable.
+
+## Restore the normal service after capture
+
+For the deployed removable override, run on the Pi:
+
+```zsh
+sudo systemctl stop vcontrol.service
+sudo rm /etc/systemd/system/vcontrol.service.d/optical-trace.conf
+sudo systemctl daemon-reload
+sudo systemctl start vcontrol.service
+```
+
+Remove only this trace override, not other service configuration. The original /usr/local/sbin/vcontrold executable and base service unit are retained. Preserve the trace file for analysis; these commands do not delete it. The alternate executable is /usr/local/sbin/vcontrold-trace. Systemd supervises the foreground trace process as Type=simple.
