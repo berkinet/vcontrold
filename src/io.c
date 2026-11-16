@@ -22,6 +22,7 @@
 #include <sys/ioctl.h>
 
 #include "io.h"
+#include "trace.h"
 #include "socket.h"
 #include "common.h"
 
@@ -35,11 +36,13 @@ static jmp_buf    env_alrm;
 
 void closeDevice(int fd)
 {
+    if (optical_trace_enabled()) optical_trace_record("SESSION-CLOSE", NULL, 0);
     close(fd);
 }
 
 int openDevice(char *device)
 {
+    if (optical_trace_enabled()) return optical_trace_device(device);
     // We differentiate TTY and Socket connections.
     // Socker: no / at the beginning and a :
     int fd;
@@ -122,9 +125,12 @@ int my_send(int fd, char *s_buf, int len)
     int i;
     int wr;
     // Empty buffer
-    tcflush(fd, TCIOFLUSH);
+    optical_trace_flush(fd);
     // We use the socket fixed variant from socket.c
+    optical_trace_record("TX-ATTEMPT", s_buf, (size_t)len);
     wr = writen(fd, s_buf, len);
+    if (wr < 0) optical_trace_record("TX-ERROR", NULL, 0);
+    if (wr > 0) optical_trace_record("TX", s_buf, (size_t)wr);
     for (i = 0; i < len; i++) {
         unsigned char byte = s_buf[i] & 255;
         logIT(LOG_INFO, ">SENT: %02X", (int)byte);
@@ -165,6 +171,7 @@ int receive(int fd, char *r_buf, int r_len, unsigned long *etime)
         }
 
         alarm(0);
+        optical_trace_record("RX-REPLY", &r_buf[i], 1);
         unsigned char byte = r_buf[i] & 255;
         mid = times(&tms_t);
         logIT(LOG_INFO, "<RECV: %02X (%0.1f ms)", byte, ((float)(mid - mid1) / clktck) * 1000);
@@ -282,6 +289,7 @@ int receive_nb(int fd, char *r_buf, int r_len, unsigned long *etime)
                     return -1;
                 }
             } else {
+                optical_trace_record("RX-REPLY", &r_buf[i], (size_t)len);
                 unsigned char byte = r_buf[i] & 255;
                 mid = times(&tms_t);
                 logIT(LOG_INFO, "<RECV: len=%zd %02X (%0.1f ms)", len, byte, ((float)(mid - mid1) / clktck) * 1000);

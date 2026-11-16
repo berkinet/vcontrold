@@ -27,6 +27,9 @@
 #endif
 
 #include "socket.h"
+#ifdef OPTICAL_TRACE
+#include "trace.h"
+#endif
 #include "common.h"
 #include "vclient.h"
 
@@ -132,6 +135,11 @@ int listenToSocket(int listenfd, int makeChild)
     signal(SIGCHLD, SIG_IGN);
 
     for (;;) {
+#ifdef OPTICAL_TRACE
+        if (optical_trace_enabled() && optical_trace_wait(listenfd)) {
+            perror("optical trace idle capture failed"); exit(2);
+        }
+#endif
         connfd = accept(listenfd, (struct sockaddr *) &cliaddr, &cliaddrlen);
         getnameinfo((struct sockaddr *) &cliaddr, cliaddrlen, clienthost, sizeof(clienthost),
                     clientservice, sizeof(clientservice), NI_NUMERICHOST);
@@ -374,6 +382,13 @@ ssize_t readline(int fd, void *vptr, size_t maxlen)
 
 ssize_t Readline(int fd, void *ptr, size_t maxlen)
 {
+#ifdef OPTICAL_TRACE
+    if (optical_trace_enabled()) {
+        ssize_t traced = optical_trace_line(fd, ptr, maxlen);
+        if (traced < 0) { perror("optical trace command read failed"); return 0; }
+        return traced;
+    }
+#endif
     ssize_t n;
 
     if ((n = readline(fd, ptr, maxlen)) < 0) {

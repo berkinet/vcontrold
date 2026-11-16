@@ -29,6 +29,7 @@
 #include <arpa/inet.h>
 
 #include "io.h"
+#include "trace.h"
 #include "common.h"
 #include "xmlconfig.h"
 #include "parser.h"
@@ -79,6 +80,7 @@ void usage()
     printf("                 [-c|--commandfile <command-file>] [-P|--pidfile <pid-file>]\n");
     printf("                 [-U|--username <username>] [-G|--groupname <groupname>]\n");
     printf("                 [-?|--help] [-i|--vsim] [-g|--debug]\n");
+    printf("                 [-t <trace-file>] (requires -n; KW/KW2 only)\n");
     printf("                 [-4|--inet4] [-6|--inet6]\n\n");
 
     exit(1);
@@ -128,7 +130,7 @@ int readCmdFile(char *filename, char *result, int *resultLen, char *device)
     }
     logIT(LOG_INFO, "Reading cmd file %s", filename);
     // Empty queue
-    tcflush(fd, TCIOFLUSH);
+    optical_trace_flush(fd);
     while (fgets(line, MAXBUF - 1, cmdPtr)) {
         // Remove \n
         line[strlen(line) - 1] = '\0';
@@ -626,6 +628,7 @@ int main(int argc, char *argv[])
     char *device = NULL;
     char *cmdfile = NULL;
     char *logfile = NULL;
+    char *tracefile = NULL;
     char *username = NULL;
     char *groupname = NULL;
     static int useSyslog = 0;
@@ -661,7 +664,7 @@ int main(int argc, char *argv[])
 
         // getopt_long stores the option index here.
         int option_index = 0;
-        opt = getopt_long (argc, argv, "c:d:gil:P:U:G:np:L:sx:vV46h",
+        opt = getopt_long (argc, argv, "c:d:gil:P:U:G:np:L:sx:t:vV46h",
                            long_options, &option_index);
 
         // Detect the end of the options.
@@ -727,6 +730,9 @@ int main(int argc, char *argv[])
             break;
         case 's':
             useSyslog = 1;
+            break;
+        case 't':
+            tracefile = optarg;
             break;
         case 'v':
             puts ("option -v\n");
@@ -818,6 +824,13 @@ int main(int argc, char *argv[])
             logIT(LOG_ERR, "Could not create simulator INI file %s", file);
         }
         fprintf(iniFD, "[DATA]\n");
+    }
+
+    if (tracefile && (makeDaemon || !tcpport || (cmdfile && *cmdfile)
+            || (strcmp(cfgPtr->devPtr->protoPtr->name, "KW")
+                && strcmp(cfgPtr->devPtr->protoPtr->name, "KW2")))) {
+        fprintf(stderr, "-t requires -n, a TCP server, KW/KW2, and no -c command file\n");
+        exit(2);
     }
 
     // The macros are replaced and the strings to send are converted to bytecode
@@ -951,6 +964,9 @@ int main(int argc, char *argv[])
             }
         }
 
+        if (tracefile && optical_trace_start(tracefile, device)) {
+            perror("cannot start optical trace"); exit(2);
+        }
         vcontrol_seminit();
 
         while (1) {

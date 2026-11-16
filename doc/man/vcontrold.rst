@@ -24,6 +24,7 @@ SYNOPSIS
     [-c\|\--commandfile <command-file>] [-P\|\--pidfile <pid-file>]
     [-U\|\--username <username>] [-G\|\--groupname <groupname>]
     [-?\|\--help] [-i\|\--vsim] [-g\|\--debug]
+    [-t <trace-file>]
     [-4\|\--inet4] [-6\|\--inet6]
 
 
@@ -35,6 +36,14 @@ a Viessmann vito heating controller.
 
 OPTIONS
 =======
+
+-t <trace-file>
+    Append a continuous optical byte trace. Requires -n and KW/KW2 protocol.
+    Keeps one optical descriptor open between TCP clients. Logs idle RX,
+    protocol RX/TX, commands and bytes drained before transmission, with UTC
+    and monotonic host timestamps. Does not decode unsolicited messages.
+    Only one daemon may own the adapter. See doc/optical-trace.md.
+
 
 -x <xml-file>, \--xmlfile <xml-file>
     location of the main config file

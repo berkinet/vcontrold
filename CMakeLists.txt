@@ -51,6 +51,7 @@ include_directories(
 
 set(vcontrold_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/io.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/trace.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/xmlconfig.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c
@@ -66,6 +67,7 @@ set(vclient_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/socket.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/io.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/trace.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/vclient.c
 )
@@ -85,6 +87,7 @@ set(LIBS
 )
 
 add_executable(vcontrold ${vcontrold_SRCS})
+target_compile_definitions(vcontrold PRIVATE OPTICAL_TRACE)
 target_link_libraries(vcontrold ${LIBS})
 add_dependencies(vcontrold UpdateVersion)
 
